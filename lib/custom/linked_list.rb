@@ -1,4 +1,3 @@
-# require 'active_support'
 class LinkedList
   def initialize
     @cache = ActiveSupport::Cache::FileStore.new "/tmp/linked_list_cache"
@@ -11,31 +10,50 @@ class LinkedList
   end
   def append(value)
     if @head
-      find_tail.next = Node.new(value)
+      append_after(value)
     else
       @head = Node.new(value)
     end
     @cache.write('linked_list', @head)
   end
-  def find_tail
+  def append_after(value)
     node = @head
-    return node if !node.next
-    return node if !node.next while (node = node.next)
-  end
-  def append_after(target, value)
-    node           = find(target)
-    return unless node
-    old_next       = node.next
-    node.next      = Node.new(value)
-    node.next.next = old_next
-  end
-
-  def find(value)
-    node = @head
-    return false if !node.next
-    return node  if node.value == value
-    while (node = node.next)
-      return node if node.value == value
+    if !node.next
+      if value["position"].to_i < node.value["position"].to_i
+        @head = Node.new(value)
+        @head.next = node
+        return
+      else
+        node.next = Node.new(value)
+        return
+      end
+    else
+      intial_node = node
+      previous_node = nil
+      if value["position"].to_i < node.value["position"].to_i
+        @head = Node.new(value)
+        @head.next = node
+        return
+      end
+      check = false
+      while (node = node.next)
+        if value["position"].to_i < node.value["position"].to_i
+          if previous_node.nil?
+            @head.next = Node.new(value)
+            @head.next.next = node
+            return
+          else
+            check = true
+            previous_node.next = Node.new(value)
+            previous_node.next.next = node
+            return
+          end
+        elsif node.next.nil? && !check
+          node.next = Node.new(value)
+          return
+        end
+        previous_node = node
+      end
     end
   end
 
@@ -47,7 +65,7 @@ class LinkedList
     end
     node      = find_before(position)
     node.next = node.next.next
-    @cache.write('linked_list',node)
+    @cache.write('linked_list',@head)
   end
 
   def find_before(position)
@@ -62,14 +80,14 @@ class LinkedList
   def update_list(position, data)
     node = @head
     if node.value["position"] == position
-      node.value["data"] = data
-      @cache.write('linked_list',node)
+      node.value["data"] = data["data"]
+      @cache.write('linked_list',@head)
       return
     end
     while (node = node.next)
       if node.value["position"] == position
-        node.value["data"] = data
-        @cache.write('linked_list',node)
+        node.value["data"] = data["data"]
+        @cache.write('linked_list',@head)
         return 
       end
     end
@@ -77,7 +95,7 @@ class LinkedList
 
   def find_list(position)
     node = @head
-    return node if node.value[:position] == position
+    return node.value if node.value["position"] == position
     while (node = node.next)
       return node.value if node.value["position"] == position
     end

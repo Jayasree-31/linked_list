@@ -1,5 +1,4 @@
 class ListController < ApplicationController
-  # ::MEMORY_STORE = ActiveSupport::Cache::MemoryStore.new
   before_action :set_linked_list, :set_cache
   def index
     lists = @list.get_lists
@@ -7,13 +6,12 @@ class ListController < ApplicationController
   end
 
   def create
-    render json: {"error": "data and position is required "} if params[:data].nil? || params[:position].nil?
+    return render json: {"error": "data and position is required "} if params[:data].blank? || params[:position].blank?
     list_data = {}
-    list_data["data"] = params[:data].nil?
+    list_data["data"] = params[:data]
     list_data["position"] = params[:position]
     @list.append(list_data)
-    linked_list = @cache.read('linked_list')
-    render json:  linked_list 
+    render json:  {"message": "Node created successfully"}
   end
 
   def show
